@@ -1142,7 +1142,7 @@
       }
       try {
         mediaStream = await navigator.mediaDevices.getUserMedia({
-          video: { width: { ideal: 320 }, height: { ideal: 180 }, frameRate: { ideal: 15, max: 20 }, facingMode: 'user' },
+          video: { width: { ideal: 1280 }, height: { ideal: 720 }, frameRate: { ideal: 60, max: 60 }, facingMode: 'user' },
           audio: { echoCancellation: true, noiseSuppression: true }
         });
         participantVideo.srcObject = mediaStream;
@@ -1226,8 +1226,8 @@
       currentChunks = [];
       try {
         const recorderOptions = mimeType
-          ? { mimeType, videoBitsPerSecond: 250000, audioBitsPerSecond: 48000 }
-          : { videoBitsPerSecond: 250000, audioBitsPerSecond: 48000 };
+          ? { mimeType, videoBitsPerSecond: 2500000, audioBitsPerSecond: 96000 }
+          : { videoBitsPerSecond: 2500000, audioBitsPerSecond: 96000 };
         mediaRecorder = new MediaRecorder(mediaStream, recorderOptions);
       } catch (error) {
         console.error(error);
