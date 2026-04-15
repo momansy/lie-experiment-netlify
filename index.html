@@ -893,7 +893,7 @@
       </div>
       <div class="actions">
         <button class="secondary" id="btn-download-all">Download All Videos</button>
-        <button class="secondary" id="btn-upload-drive" style="display:none;">Save Session to Drive</button>
+        <button class="secondary" id="btn-upload-drive">Save Session to Drive</button>
         <button class="primary" id="btn-restart">Run New Participant</button>
       </div>
     </div>
@@ -1448,7 +1448,11 @@
       const restartBtn = document.getElementById('btn-restart');
       if (!restartBtn) return;
 
-      btnUploadDrive.style.display = 'none';
+      if (driveUploadCompleted) {
+        btnUploadDrive.style.display = 'none';
+      } else {
+        btnUploadDrive.style.display = '';
+      }
 
       if (experimentFinished && !driveUploadCompleted) {
         restartBtn.disabled = true;
