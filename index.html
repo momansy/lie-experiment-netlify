@@ -772,6 +772,19 @@
       }
     }
 
+  
+    @media (max-width: 768px) {
+      #screen-run .run-panels {
+        display: grid;
+        grid-template-columns: 1fr;
+      }
+
+      #screen-run .actions {
+        margin-top: 0 !important;
+        margin-bottom: 14px !important;
+      }
+    }
+
   </style>
 
   <script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
@@ -1932,7 +1945,34 @@ btnNext.onclick = () => {
       showScreen('start');
     };
 
-    initializeCountrySelect();
+
+    function adaptMobileRunLayout() {
+      const runScreen = document.getElementById('screen-run');
+      if (!runScreen) return;
+
+      const runPanels = runScreen.querySelector('.run-panels');
+      const recorderWrap = runScreen.querySelector('.recorder-wrap');
+      const runActions = runScreen.querySelector('.actions');
+
+      if (!runPanels || !recorderWrap || !runActions) return;
+
+      if (window.innerWidth <= 768) {
+        if (runActions.parentElement !== runPanels) {
+          runPanels.insertBefore(runActions, recorderWrap);
+        }
+      } else {
+        if (runActions.parentElement !== runScreen) {
+          runScreen.appendChild(runActions);
+        }
+      }
+    }
+
+    window.addEventListener('resize', adaptMobileRunLayout);
+    window.addEventListener('orientationchange', adaptMobileRunLayout);
+    adaptMobileRunLayout();
+
+
+        initializeCountrySelect();
   </script>
 
   <div id="thankyouPopupOverlay" class="thankyou-popup-overlay" aria-hidden="true" onclick="if(event.target===this) hideThankYouPopup()">
