@@ -415,6 +415,363 @@
         max-height: 210px;
       }
     }
+  
+    .thankyou-popup-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(15, 23, 42, 0.55);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      z-index: 9999;
+      padding: 20px;
+    }
+
+    .thankyou-popup-overlay.show {
+      display: flex;
+    }
+
+    .thankyou-popup {
+      width: min(520px, 92vw);
+      background: #ffffff;
+      border-radius: 22px;
+      box-shadow: 0 24px 80px rgba(15, 23, 42, 0.22);
+      padding: 32px 26px;
+      text-align: center;
+      border: 1px solid #e5e7eb;
+      animation: popupFadeIn 0.22s ease-out;
+    }
+
+    .thankyou-popup h2 {
+      margin: 0 0 12px;
+      font-size: 2rem;
+      line-height: 1.15;
+      color: #111827;
+    }
+
+    .thankyou-popup p {
+      margin: 0 0 22px;
+      font-size: 1.05rem;
+      color: #4b5563;
+      line-height: 1.6;
+    }
+
+    .thankyou-popup button {
+      border: none;
+      border-radius: 14px;
+      background: #5b55e3;
+      color: white;
+      font-size: 1rem;
+      font-weight: 700;
+      padding: 14px 24px;
+      cursor: pointer;
+    }
+
+    .thankyou-popup button:hover {
+      background: #4f46e5;
+    }
+
+    @keyframes popupFadeIn {
+      from {
+        opacity: 0;
+        transform: translateY(10px) scale(0.98);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+      }
+    }
+
+  
+    :root {
+      --glass-white: rgba(255, 255, 255, 0.52);
+      --glass-strong: rgba(255, 255, 255, 0.72);
+      --glass-border: rgba(255, 255, 255, 0.42);
+      --shadow-soft: 0 18px 50px rgba(79, 70, 229, 0.10);
+      --shadow-card: 0 20px 60px rgba(15, 23, 42, 0.10);
+      --shadow-btn: 0 10px 30px rgba(79, 70, 229, 0.18);
+      --primary-start: rgba(99, 102, 241, 0.82);
+      --primary-end: rgba(139, 92, 246, 0.78);
+      --danger-start: rgba(248, 113, 113, 0.78);
+      --danger-end: rgba(239, 68, 68, 0.72);
+      --secondary-bg: rgba(255, 255, 255, 0.44);
+    }
+
+    body {
+      min-height: 100vh;
+      background:
+        radial-gradient(circle at top left, rgba(129, 140, 248, 0.22), transparent 30%),
+        radial-gradient(circle at top right, rgba(56, 189, 248, 0.18), transparent 24%),
+        linear-gradient(135deg, #eef2ff 0%, #f8fafc 48%, #eef6ff 100%);
+      color: #172033;
+    }
+
+    .container {
+      max-width: 1120px;
+      padding: 34px 24px 48px;
+    }
+
+    .card {
+      background: linear-gradient(180deg, rgba(255, 255, 255, 0.82), rgba(255, 255, 255, 0.60));
+      border: 1px solid rgba(255, 255, 255, 0.55);
+      box-shadow: var(--shadow-card);
+      backdrop-filter: blur(18px);
+      -webkit-backdrop-filter: blur(18px);
+      border-radius: 28px;
+      padding: 30px;
+    }
+
+    h1, h2, h3 {
+      color: #1b2238;
+      letter-spacing: -0.03em;
+    }
+
+    .muted {
+      color: #5c6880;
+      font-size: 1.02rem;
+    }
+
+    .note,
+    .upload-status,
+    .recorder-card,
+    .summary-item,
+    .image-frame,
+    .id-box,
+    .select-menu,
+    .field input,
+    .field select,
+    .select-trigger {
+      backdrop-filter: blur(14px);
+      -webkit-backdrop-filter: blur(14px);
+    }
+
+    .note {
+      background: linear-gradient(135deg, rgba(99, 102, 241, 0.12), rgba(255, 255, 255, 0.50));
+      border-left: 4px solid rgba(99, 102, 241, 0.80);
+      border-top: 1px solid rgba(255, 255, 255, 0.50);
+      border-right: 1px solid rgba(255, 255, 255, 0.40);
+      border-bottom: 1px solid rgba(255, 255, 255, 0.40);
+      border-radius: 18px;
+      padding: 18px;
+      color: #334155;
+      box-shadow: var(--shadow-soft);
+    }
+
+    .field input,
+    .field select,
+    .select-trigger {
+      background: rgba(255, 255, 255, 0.54);
+      border: 1px solid rgba(255, 255, 255, 0.72);
+      box-shadow: inset 0 1px 0 rgba(255,255,255,0.35), 0 8px 20px rgba(15, 23, 42, 0.05);
+      border-radius: 18px;
+      padding: 15px 16px;
+      color: #1f2937;
+    }
+
+    .field input::placeholder {
+      color: #7b869c;
+    }
+
+    .field input:focus,
+    .field select:focus,
+    .select-trigger:focus {
+      outline: none;
+      border-color: rgba(99, 102, 241, 0.70);
+      box-shadow: 0 0 0 4px rgba(99, 102, 241, 0.10), 0 10px 24px rgba(79, 70, 229, 0.10);
+    }
+
+    .select-menu {
+      background: rgba(255, 255, 255, 0.88);
+      border: 1px solid rgba(255, 255, 255, 0.62);
+      border-radius: 18px;
+      box-shadow: 0 18px 40px rgba(15, 23, 42, 0.12);
+    }
+
+    .select-option:hover {
+      background: rgba(99, 102, 241, 0.10);
+      border-radius: 12px;
+    }
+
+    .id-box {
+      background: linear-gradient(180deg, rgba(255, 255, 255, 0.74), rgba(255, 255, 255, 0.50));
+      border: 1px solid rgba(255, 255, 255, 0.72);
+      border-radius: 18px;
+      box-shadow: 0 12px 24px rgba(15, 23, 42, 0.05);
+    }
+
+    .id-box:hover {
+      border-color: rgba(99, 102, 241, 0.78);
+      box-shadow: 0 16px 26px rgba(79, 70, 229, 0.11);
+    }
+
+    .id-box.truth {
+      background: linear-gradient(180deg, rgba(236, 253, 245, 0.92), rgba(209, 250, 229, 0.74));
+      border-color: rgba(16, 185, 129, 0.45);
+    }
+
+    .id-box.lie {
+      background: linear-gradient(180deg, rgba(254, 242, 242, 0.92), rgba(254, 226, 226, 0.74));
+      border-color: rgba(239, 68, 68, 0.34);
+    }
+
+    .badge {
+      border: 1px solid rgba(255,255,255,0.45);
+      box-shadow: 0 10px 18px rgba(15, 23, 42, 0.05);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+    }
+
+    .badge.truth {
+      background: rgba(236, 253, 245, 0.72);
+    }
+
+    .badge.lie {
+      background: rgba(254, 242, 242, 0.76);
+    }
+
+    button {
+      position: relative;
+      overflow: hidden;
+      border-radius: 18px;
+      padding: 14px 22px;
+      font-size: 1rem;
+      font-weight: 800;
+      letter-spacing: -0.01em;
+      border: 1px solid rgba(255, 255, 255, 0.34);
+      box-shadow: var(--shadow-btn);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      transition: transform 0.22s ease, box-shadow 0.22s ease, opacity 0.22s ease, background 0.22s ease;
+    }
+
+    button::before {
+      content: "";
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(180deg, rgba(255,255,255,0.28), rgba(255,255,255,0.02));
+      pointer-events: none;
+    }
+
+    button:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 16px 36px rgba(79, 70, 229, 0.18);
+    }
+
+    .primary {
+      color: #ffffff;
+      background: linear-gradient(135deg, var(--primary-start), var(--primary-end));
+    }
+
+    .secondary {
+      color: #1f2937;
+      background: linear-gradient(135deg, rgba(255,255,255,0.56), rgba(255,255,255,0.30));
+    }
+
+    .danger {
+      color: #ffffff;
+      background: linear-gradient(135deg, var(--danger-start), var(--danger-end));
+    }
+
+    button:disabled {
+      opacity: 0.42;
+      filter: saturate(0.85);
+    }
+
+    .progress {
+      height: 14px;
+      background: rgba(226, 232, 240, 0.70);
+      border: 1px solid rgba(255, 255, 255, 0.54);
+      box-shadow: inset 0 1px 2px rgba(15, 23, 42, 0.06);
+    }
+
+    .progress-bar {
+      background: linear-gradient(90deg, rgba(79, 70, 229, 0.92), rgba(139, 92, 246, 0.86));
+      box-shadow: 0 0 16px rgba(99, 102, 241, 0.35);
+    }
+
+    .image-frame {
+      background: linear-gradient(180deg, rgba(255,255,255,0.55), rgba(248,250,252,0.40));
+      border: 1px solid rgba(255, 255, 255, 0.68);
+      border-radius: 24px;
+      box-shadow: 0 16px 34px rgba(15, 23, 42, 0.06);
+    }
+
+    .recorder-card {
+      background: linear-gradient(180deg, rgba(255,255,255,0.60), rgba(255,255,255,0.42));
+      border: 1px solid rgba(255, 255, 255, 0.60);
+      border-radius: 24px;
+      box-shadow: 0 16px 34px rgba(15, 23, 42, 0.06);
+    }
+
+    .camera-preview {
+      border-radius: 18px;
+      border: 1px solid rgba(255,255,255,0.18);
+      box-shadow: 0 14px 30px rgba(15, 23, 42, 0.18);
+    }
+
+    .recording-timer {
+      background: rgba(238, 242, 255, 0.68);
+      border: 1px solid rgba(255,255,255,0.62);
+      box-shadow: 0 10px 20px rgba(79, 70, 229, 0.08);
+      border-radius: 999px;
+    }
+
+    .summary-item,
+    .upload-status {
+      background: linear-gradient(180deg, rgba(255,255,255,0.58), rgba(255,255,255,0.40));
+      border: 1px solid rgba(255,255,255,0.60);
+      border-radius: 20px;
+      box-shadow: 0 14px 30px rgba(15, 23, 42, 0.05);
+    }
+
+    .upload-status.success {
+      background: linear-gradient(180deg, rgba(236, 253, 245, 0.86), rgba(209, 250, 229, 0.62));
+    }
+
+    .upload-status.error {
+      background: linear-gradient(180deg, rgba(254, 242, 242, 0.88), rgba(254, 226, 226, 0.64));
+    }
+
+    .upload-status.loading {
+      background: linear-gradient(180deg, rgba(238, 242, 255, 0.86), rgba(224, 231, 255, 0.60));
+    }
+
+    .thankyou-popup-overlay {
+      background: rgba(15, 23, 42, 0.44);
+      backdrop-filter: blur(8px);
+      -webkit-backdrop-filter: blur(8px);
+    }
+
+    .thankyou-popup {
+      background: linear-gradient(180deg, rgba(255,255,255,0.82), rgba(255,255,255,0.64));
+      border: 1px solid rgba(255,255,255,0.62);
+      box-shadow: 0 30px 80px rgba(15, 23, 42, 0.16);
+      backdrop-filter: blur(18px);
+      -webkit-backdrop-filter: blur(18px);
+      border-radius: 28px;
+    }
+
+    .thankyou-popup button {
+      background: linear-gradient(135deg, rgba(99, 102, 241, 0.86), rgba(139, 92, 246, 0.82));
+      border: 1px solid rgba(255,255,255,0.30);
+      box-shadow: 0 14px 26px rgba(79, 70, 229, 0.18);
+    }
+
+    @media (max-width: 640px) {
+      .container {
+        padding: 16px 14px 30px;
+      }
+
+      .card {
+        padding: 22px 18px;
+        border-radius: 22px;
+      }
+
+      button {
+        width: 100%;
+      }
+    }
+
   </style>
 
   <script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
@@ -427,7 +784,7 @@
         This website randomly selects 10 image IDs from a pool of 50 images. The participant will assign 5 images to be described truthfully and the other 5 to be described deceptively. Then the website will show the images one by one and remind the participant whether to tell the truth or lie for each image.
       </p>
       <div class="note">
-        Put your real images inside a folder named <strong>images</strong> and name them like: <strong>1.jpg</strong>, <strong>2.jpg</strong>, ..., <strong>50.jpg</strong>.
+        By starting the experiment, you confirm that you agree to participate and allow your provided data, including your recorded responses, to be collected and used for this research project.
       </div>
 
       <div class="form-grid">
@@ -536,7 +893,7 @@
       </div>
       <div class="actions">
         <button class="secondary" id="btn-download-all">Download All Videos</button>
-        <button class="secondary" id="btn-upload-drive">Save Session to Drive</button>
+        <button class="secondary" id="btn-upload-drive">Save Session to Drive (No Zip)</button>
         <button class="primary" id="btn-restart">Run New Participant</button>
       </div>
     </div>
@@ -1107,19 +1464,14 @@
           });
         }
 
-        setUploadStatus('Creating zip file in Google Drive...', 'loading');
-        const result = await postJsonToAppsScript({
-          action: 'finalize_session',
-          sessionKey,
-          zipName: `${sessionKey}.zip`
-        });
-
         driveUploadCompleted = true;
-        uploadResult = result;
-        const finalMessage = result && result.url
-          ? `Upload complete. The zip file was created in Google Drive. Open it here: ${result.url}`
-          : 'Upload complete. The zip file was created in Google Drive successfully.';
-        setUploadStatus(finalMessage, 'success');
+        uploadResult = {
+          ok: true,
+          sessionKey,
+          mode: 'files_only'
+        };
+        setUploadStatus('Upload complete. Participant data, PDF, and videos were saved to Google Drive. Zip creation is skipped in this version.', 'success');
+        showThankYouPopup();
       } catch (error) {
         console.error(error);
         setUploadStatus(`Upload failed: ${error.message}`, 'error');
@@ -1369,5 +1721,14 @@
 
     initializeCountrySelect();
   </script>
+
+  <div id="thankyouPopupOverlay" class="thankyou-popup-overlay" aria-hidden="true">
+    <div class="thankyou-popup" role="dialog" aria-modal="true" aria-labelledby="thankyouPopupTitle">
+      <h2 id="thankyouPopupTitle">Thank you</h2>
+      <p>Your responses have been uploaded successfully.</p>
+      <button type="button" id="closeThankyouPopupBtn">OK</button>
+    </div>
+  </div>
+
 </body>
 </html>
