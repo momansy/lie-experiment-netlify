@@ -931,6 +931,11 @@
     let driveUploadInProgress = false;
     let driveUploadCompleted = false;
     let uploadResult = null;
+    let sessionKeyCache = '';
+    let sessionInitialized = false;
+    let summaryUploaded = false;
+    let uploadWorkerRunning = false;
+    let experimentFinished = false;
 
     const screens = {
       start: document.getElementById('screen-start'),
@@ -1295,6 +1300,11 @@
         }
       });
       recordings = [];
+      sessionKeyCache = '';
+      sessionInitialized = false;
+      summaryUploaded = false;
+      uploadWorkerRunning = false;
+      experimentFinished = false;
     }
 
     function downloadAllRecordings() {
@@ -1425,82 +1435,212 @@
       return data;
     }
 
-    async function uploadSessionToDrive() {
-      if (driveUploadInProgress) return;
-      if (driveUploadCompleted) {
-        setUploadStatus('This participant session was already uploaded to Google Drive.', 'success');
-        return;
+
+    function getUploadedCount() {
+      return recordings.filter(recording => recording && recording.uploaded).length;
+    }
+
+    function getPendingCount() {
+      return recordings.filter(recording => recording && !recording.uploaded).length;
+    }
+
+    function refreshEndActions() {
+      const restartBtn = document.getElementById('btn-restart');
+      if (!restartBtn) return;
+      if (experimentFinished && !driveUploadCompleted) {
+        restartBtn.disabled = true;
+        btnUploadDrive.disabled = driveUploadInProgress || recordings.filter(Boolean).length !== sequence.length;
+      } else {
+        restartBtn.disabled = false;
+        btnUploadDrive.disabled = driveUploadCompleted || recordings.filter(Boolean).length !== sequence.length;
+      }
+    }
+
+    async function ensureSessionInfrastructure() {
+      if (!sessionKeyCache) {
+        sessionKeyCache = buildSessionKey();
       }
 
-      const validRecordings = recordings.filter(Boolean);
-      if (validRecordings.length !== sequence.length) {
-        throw new Error('Some videos are still missing. Each image must have one recorded answer.');
-      }
-
-      driveUploadInProgress = true;
-      btnUploadDrive.disabled = true;
-      document.getElementById('btn-restart').disabled = true;
-
-      try {
-        const sessionKey = buildSessionKey();
-        setUploadStatus('Please wait. Participant information is being uploaded to the database...', 'loading');
-
+      if (!sessionInitialized) {
         await postJsonToAppsScript({
           action: 'begin_session',
-          sessionKey,
+          sessionKey: sessionKeyCache,
           participant: participantInfo,
           selectedImageIds,
           truthImageIds: Array.from(truthSet).sort((a, b) => a - b),
           lieImageIds: Array.from(lieSet).sort((a, b) => a - b),
           sequence
         });
+        sessionInitialized = true;
+      }
 
-        setUploadStatus('Please wait. The participant summary is being prepared and uploaded...', 'loading');
-        const pdfBlob = await buildParticipantSummaryPdfBlob(sessionKey);
+      if (!summaryUploaded) {
+        const pdfBlob = await buildParticipantSummaryPdfBlob(sessionKeyCache);
         const pdfBase64 = await blobToBase64(pdfBlob);
-
         await postJsonToAppsScript({
           action: 'upload_file',
-          sessionKey,
+          sessionKey: sessionKeyCache,
           filename: 'participant_summary.pdf',
           mimeType: 'application/pdf',
           base64Data: pdfBase64
         });
+        summaryUploaded = true;
+      }
 
-        for (let index = 0; index < validRecordings.length; index++) {
-          const recording = validRecordings[index];
-          setUploadStatus(`Please wait. Uploading response ${index + 1} of ${validRecordings.length} to the database: ${recording.filename}`, 'loading');
-          const base64Data = await blobToBase64(recording.blob);
-          await postJsonToAppsScript({
-            action: 'upload_file',
-            sessionKey,
-            filename: recording.filename,
-            mimeType: recording.blob.type || 'video/webm',
-            base64Data
-          });
-        }
+      return sessionKeyCache;
+    }
 
+    function queueRecordingForUpload(index) {
+      const recording = recordings[index];
+      if (!recording) return;
+      if (recording.uploaded || recording.uploading) return;
+      recording.queued = true;
+      processUploadQueue().catch(error => {
+        console.error(error);
+      });
+    }
+
+    function maybeCompleteBackgroundUpload() {
+      const allRecorded = recordings.filter(Boolean).length === sequence.length && sequence.length > 0;
+      const allUploaded = allRecorded && recordings.every(recording => recording && recording.uploaded);
+
+      if (experimentFinished && allUploaded && summaryUploaded && sessionInitialized) {
+        driveUploadInProgress = false;
         driveUploadCompleted = true;
         uploadResult = {
           ok: true,
-          sessionKey,
+          sessionKey: sessionKeyCache,
           mode: 'files_only'
         };
         setUploadStatus('Upload complete. The participant data and recorded responses were saved successfully to the database.', 'success');
+        renderFinalSummary();
+        refreshEndActions();
         showThankYouPopup();
+        return true;
+      }
+
+      return false;
+    }
+
+    async function processUploadQueue() {
+      if (uploadWorkerRunning || driveUploadCompleted) return;
+
+      uploadWorkerRunning = true;
+      driveUploadInProgress = true;
+      refreshEndActions();
+
+      try {
+        await ensureSessionInfrastructure();
+
+        while (true) {
+          const nextIndex = recordings.findIndex(recording => recording && recording.queued && !recording.uploaded && !recording.uploading);
+          if (nextIndex === -1) break;
+
+          const recording = recordings[nextIndex];
+          recording.uploading = true;
+          recording.queued = false;
+
+          const completedBefore = getUploadedCount();
+          setUploadStatus(
+            `Please wait. Uploading response ${completedBefore + 1} of ${sequence.length} to the database: ${recording.filename}`,
+            'loading'
+          );
+
+          try {
+            const base64Data = await blobToBase64(recording.blob);
+            await postJsonToAppsScript({
+              action: 'upload_file',
+              sessionKey: sessionKeyCache,
+              filename: recording.filename,
+              mimeType: recording.blob.type || 'video/webm',
+              base64Data
+            });
+
+            recording.uploaded = true;
+            recording.uploading = false;
+            recording.uploadError = '';
+            renderFinalSummary();
+          } catch (error) {
+            recording.uploading = false;
+            recording.uploadError = error.message || 'Upload failed.';
+            recording.queued = true;
+            renderFinalSummary();
+            throw error;
+          }
+        }
+
+        if (!maybeCompleteBackgroundUpload()) {
+          const uploaded = getUploadedCount();
+          if (experimentFinished) {
+            setUploadStatus(
+              uploaded === sequence.length
+                ? 'Please wait. Finalizing the participant data in the database...'
+                : `Please wait. ${uploaded} of ${sequence.length} responses have been uploaded to the database.`,
+              'loading'
+            );
+          } else {
+            setUploadStatus(
+              uploaded > 0
+                ? `Background upload in progress. ${uploaded} response${uploaded === 1 ? '' : 's'} uploaded so far.`
+                : 'The first saved response will start uploading in the background after you continue.',
+              uploaded > 0 ? 'loading' : ''
+            );
+          }
+        }
       } catch (error) {
         console.error(error);
-        setUploadStatus(`Upload failed: ${error.message}`, 'error');
-        throw error;
-      } finally {
         driveUploadInProgress = false;
-        btnUploadDrive.disabled = false;
-        document.getElementById('btn-restart').disabled = false;
+        setUploadStatus(`Upload paused: ${error.message}. You can press "Save Session to Drive" to retry.`, 'error');
+      } finally {
+        uploadWorkerRunning = false;
+        if (!driveUploadCompleted && getPendingCount() > 0 && !recordings.some(recording => recording && recording.queued)) {
+          driveUploadInProgress = false;
+        }
+        refreshEndActions();
       }
     }
 
+async function uploadSessionToDrive() {
+  if (driveUploadCompleted) {
+    setUploadStatus('This participant session was already uploaded to the database.', 'success');
+    return;
+  }
 
-    function getRandomUniqueNumbers(count, min, max) {
+  const validRecordings = recordings.filter(Boolean);
+  if (validRecordings.length !== sequence.length) {
+    throw new Error('Some videos are still missing. Each image must have one recorded answer.');
+  }
+
+  recordings.forEach((recording, index) => {
+    if (recording && !recording.uploaded) {
+      recording.queued = true;
+    }
+  });
+
+  driveUploadInProgress = true;
+  refreshEndActions();
+
+  try {
+    await processUploadQueue();
+
+    if (!driveUploadCompleted) {
+      const pending = getPendingCount();
+      if (pending > 0) {
+        throw new Error(`There are still ${pending} pending response upload(s). Please wait and try again.`);
+      }
+      maybeCompleteBackgroundUpload();
+    }
+  } catch (error) {
+    console.error(error);
+    setUploadStatus(`Upload failed: ${error.message}`, 'error');
+    throw error;
+  } finally {
+    refreshEndActions();
+  }
+}
+
+
+function getRandomUniqueNumbers(count, min, max) {
       const arr = [];
       for (let i = min; i <= max; i++) arr.push(i);
       for (let i = arr.length - 1; i > 0; i--) {
@@ -1520,7 +1660,12 @@
       driveUploadInProgress = false;
       driveUploadCompleted = false;
       uploadResult = null;
-      setUploadStatus('Upload status: waiting for the participant to finish all 10 recordings. After the last recording, please wait until the data is uploaded to the database.');
+      sessionKeyCache = '';
+      sessionInitialized = false;
+      summaryUploaded = false;
+      uploadWorkerRunning = false;
+      experimentFinished = false;
+      setUploadStatus('Upload status: waiting for the participant to finish all 10 recordings. Each response will start uploading in the background after you continue.');
       renderSelectionGrid();
       showScreen('select');
     }
@@ -1595,43 +1740,60 @@
       resetRecordingButtons();
     }
 
-    function renderFinalSummary() {
-      finalSummary.innerHTML = '';
+function renderFinalSummary() {
+  finalSummary.innerHTML = '';
 
-      const participantDiv = document.createElement('div');
-      participantDiv.className = 'summary-item';
-      participantDiv.innerHTML = `
-        <strong>Participant information</strong>
-        Name: ${participantInfo.name}<br>
-        Gender: ${participantInfo.gender}<br>
-        Country: ${participantInfo.country}<br>
-        Recorded videos: ${recordings.filter(Boolean).length} / ${sequence.length}<br>
-        Drive upload: ${driveUploadCompleted ? 'Completed' : 'Pending'}
-      `;
-      finalSummary.appendChild(participantDiv);
+  const uploadedCount = getUploadedCount();
+  const participantDiv = document.createElement('div');
+  participantDiv.className = 'summary-item';
+  participantDiv.innerHTML = `
+    <strong>Participant information</strong>
+    Name: ${participantInfo.name}<br>
+    Gender: ${participantInfo.gender}<br>
+    Country: ${participantInfo.country}<br>
+    Recorded videos: ${recordings.filter(Boolean).length} / ${sequence.length}<br>
+    Database upload: ${driveUploadCompleted ? 'Completed' : `${uploadedCount} / ${sequence.length} uploaded`}
+  `;
+  finalSummary.appendChild(participantDiv);
 
-      sequence.forEach((item, index) => {
-        const div = document.createElement('div');
-        div.className = 'summary-item';
-        const recording = recordings[index];
-        div.innerHTML = `
-          <strong>${index + 1}. Image ID ${item.id}</strong>
-          Mode: ${item.mode === 'truth' ? 'Truth' : 'Lie'}<br>
-          Video: ${recording ? 'Saved' : 'Missing'}
-        `;
-        if (recording) {
-          const link = document.createElement('a');
-          link.href = recording.url;
-          link.download = recording.filename;
-          link.className = 'download-link';
-          link.textContent = 'Download this video';
-          div.appendChild(link);
-        }
-        finalSummary.appendChild(div);
-      });
+  sequence.forEach((item, index) => {
+    const div = document.createElement('div');
+    div.className = 'summary-item';
+    const recording = recordings[index];
+    let videoText = 'Missing';
+
+    if (recording) {
+      if (recording.uploaded) {
+        videoText = 'Uploaded';
+      } else if (recording.uploading || recording.queued) {
+        videoText = 'Waiting for upload';
+      } else if (recording.uploadError) {
+        videoText = 'Saved locally - upload paused';
+      } else {
+        videoText = 'Saved locally';
+      }
     }
 
-    document.getElementById('btn-start').onclick = () => {
+    div.innerHTML = `
+      <strong>${index + 1}. Image ID ${item.id}</strong>
+      Mode: ${item.mode === 'truth' ? 'Truth' : 'Lie'}<br>
+      Video: ${videoText}
+    `;
+    if (recording) {
+      const link = document.createElement('a');
+      link.href = recording.url;
+      link.download = recording.filename;
+      link.className = 'download-link';
+      link.textContent = 'Download this video';
+      div.appendChild(link);
+    }
+    finalSummary.appendChild(div);
+  });
+
+  refreshEndActions();
+}
+
+document.getElementById('btn-start').onclick = () => {
       const info = validateParticipantInfo();
       if (!info) return;
       participantInfo = info;
@@ -1676,34 +1838,56 @@
       stopRecording();
     };
 
-    btnNext.onclick = () => {
-      if (mediaRecorder && mediaRecorder.state === 'recording') {
-        alert('Please stop the current recording before continuing.');
-        return;
-      }
-      if (!recordings[currentIndex]) {
-        alert('Please record a video answer for this image before continuing.');
-        return;
-      }
-      currentIndex++;
-      if (currentIndex >= sequence.length) {
-        progressBar.style.width = '100%';
-        stopMediaStream();
+btnNext.onclick = () => {
+  if (mediaRecorder && mediaRecorder.state === 'recording') {
+    alert('Please stop the current recording before continuing.');
+    return;
+  }
+  if (!recordings[currentIndex]) {
+    alert('Please record a video answer for this image before continuing.');
+    return;
+  }
+
+  const finishedStepIndex = currentIndex;
+  queueRecordingForUpload(finishedStepIndex);
+
+  currentIndex++;
+  if (currentIndex >= sequence.length) {
+    progressBar.style.width = '100%';
+    stopMediaStream();
+    experimentFinished = true;
+    renderFinalSummary();
+    showScreen('end');
+    setUploadStatus(
+      GOOGLE_APPS_SCRIPT_WEB_APP_URL.includes('PASTE_YOUR_APPS_SCRIPT_WEB_APP_URL_HERE')
+        ? 'Upload status: not configured yet. Paste your database web app URL in the website code first.'
+        : `Please wait. ${getUploadedCount()} of ${sequence.length} responses have been uploaded to the database. The remaining responses will keep uploading in the background. Do not close this page until the upload is completed.`,
+      GOOGLE_APPS_SCRIPT_WEB_APP_URL.includes('PASTE_YOUR_APPS_SCRIPT_WEB_APP_URL_HERE') ? '' : 'loading'
+    );
+    refreshEndActions();
+    if (!GOOGLE_APPS_SCRIPT_WEB_APP_URL.includes('PASTE_YOUR_APPS_SCRIPT_WEB_APP_URL_HERE') && AUTO_UPLOAD_TO_DRIVE_WHEN_FINISHED) {
+      processUploadQueue().then(() => {
+        maybeCompleteBackgroundUpload();
         renderFinalSummary();
-        showScreen('end');
-        setUploadStatus(
-          GOOGLE_APPS_SCRIPT_WEB_APP_URL.includes('PASTE_YOUR_APPS_SCRIPT_WEB_APP_URL_HERE')
-            ? 'Upload status: not configured yet. Paste your Google Apps Script web app URL in the website code first.'
-            : 'Please wait. The participant responses are now being uploaded to the database. Do not close this page until the upload is completed.',
-          GOOGLE_APPS_SCRIPT_WEB_APP_URL.includes('PASTE_YOUR_APPS_SCRIPT_WEB_APP_URL_HERE') ? '' : 'loading'
-        );
-        if (!GOOGLE_APPS_SCRIPT_WEB_APP_URL.includes('PASTE_YOUR_APPS_SCRIPT_WEB_APP_URL_HERE') && AUTO_UPLOAD_TO_DRIVE_WHEN_FINISHED) {
-          uploadSessionToDrive().then(() => renderFinalSummary()).catch(() => renderFinalSummary());
-        }
-        return;
-      }
-      renderCurrentStep();
-    };
+      }).catch(() => {
+        renderFinalSummary();
+      });
+    }
+    return;
+  }
+
+  if (!GOOGLE_APPS_SCRIPT_WEB_APP_URL.includes('PASTE_YOUR_APPS_SCRIPT_WEB_APP_URL_HERE')) {
+    const uploaded = getUploadedCount();
+    setUploadStatus(
+      uploaded > 0
+        ? `Background upload in progress. ${uploaded} of ${sequence.length} responses uploaded so far.`
+        : 'The first saved response will start uploading in the background after you continue.',
+      uploaded > 0 ? 'loading' : ''
+    );
+  }
+
+  renderCurrentStep();
+};
 
     document.getElementById('btn-download-all').onclick = () => {
       downloadAllRecordings();
@@ -1728,22 +1912,27 @@
       driveUploadInProgress = false;
       driveUploadCompleted = false;
       uploadResult = null;
+      sessionKeyCache = '';
+      sessionInitialized = false;
+      summaryUploaded = false;
+      uploadWorkerRunning = false;
+      experimentFinished = false;
       participantNameInput.value = '';
       participantGenderInput.value = '';
       resetCountrySelection();
       hideThankYouPopup();
-      setUploadStatus('Upload status: waiting for the participant to finish all 10 recordings. After the last recording, please wait until the data is uploaded to the database.');
+      setUploadStatus('Upload status: waiting for the participant to finish all 10 recordings. Each response will start uploading in the background after you continue.');
       showScreen('start');
     };
 
     initializeCountrySelect();
   </script>
 
-  <div id="thankyouPopupOverlay" class="thankyou-popup-overlay" aria-hidden="true">
+  <div id="thankyouPopupOverlay" class="thankyou-popup-overlay" aria-hidden="true" onclick="if(event.target===this) hideThankYouPopup()">
     <div class="thankyou-popup" role="dialog" aria-modal="true" aria-labelledby="thankyouPopupTitle">
       <h2 id="thankyouPopupTitle">Thank you</h2>
       <p>Your responses have been uploaded successfully.</p>
-      <button type="button" id="closeThankyouPopupBtn">OK</button>
+      <button type="button" id="closeThankyouPopupBtn" onclick="hideThankYouPopup()">OK</button>
     </div>
   </div>
 
