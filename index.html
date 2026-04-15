@@ -769,7 +769,7 @@
       }
       try {
         mediaStream = await navigator.mediaDevices.getUserMedia({
-          video: { width: { ideal: 426 }, height: { ideal: 240 }, frameRate: { ideal: 20, max: 24 }, facingMode: 'user' },
+          video: { width: { ideal: 320 }, height: { ideal: 180 }, frameRate: { ideal: 15, max: 20 }, facingMode: 'user' },
           audio: { echoCancellation: true, noiseSuppression: true }
         });
         participantVideo.srcObject = mediaStream;
@@ -853,8 +853,8 @@
       currentChunks = [];
       try {
         const recorderOptions = mimeType
-          ? { mimeType, videoBitsPerSecond: 350000, audioBitsPerSecond: 64000 }
-          : { videoBitsPerSecond: 350000, audioBitsPerSecond: 64000 };
+          ? { mimeType, videoBitsPerSecond: 250000, audioBitsPerSecond: 48000 }
+          : { videoBitsPerSecond: 250000, audioBitsPerSecond: 48000 };
         mediaRecorder = new MediaRecorder(mediaStream, recorderOptions);
       } catch (error) {
         console.error(error);
@@ -955,17 +955,20 @@
       return `${baseName}_${stamp}_${rand}`;
     }
 
-    function blobToBase64(blob) {
-      return new Promise((resolve, reject) => {
-        const reader = new FileReader();
-        reader.onloadend = () => {
-          const result = reader.result || '';
-          const parts = String(result).split(',');
-          resolve(parts.length > 1 ? parts[1] : parts[0]);
-        };
-        reader.onerror = reject;
-        reader.readAsDataURL(blob);
-      });
+    function arrayBufferToBase64(buffer) {
+      const bytes = new Uint8Array(buffer);
+      const chunkSize = 0x8000;
+      let binary = '';
+      for (let i = 0; i < bytes.length; i += chunkSize) {
+        const chunk = bytes.subarray(i, i + chunkSize);
+        binary += String.fromCharCode.apply(null, chunk);
+      }
+      return btoa(binary);
+    }
+
+    async function blobToBase64(blob) {
+      const buffer = await blob.arrayBuffer();
+      return arrayBufferToBase64(buffer);
     }
 
     function getCurrentDateTimeText() {
@@ -1119,7 +1122,7 @@
         setUploadStatus(finalMessage, 'success');
       } catch (error) {
         console.error(error);
-        setUploadStatus(`Upload failed: ${error.message} If the PDF was saved but not the videos, update the Apps Script file and redeploy it, then test again with short recordings.`, 'error');
+        setUploadStatus(`Upload failed: ${error.message}`, 'error');
         throw error;
       } finally {
         driveUploadInProgress = false;
