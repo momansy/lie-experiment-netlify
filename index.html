@@ -1,0 +1,1370 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Image Description Experiment</title>
+  <style>
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: Arial, Helvetica, sans-serif;
+      background: #f5f7fb;
+      color: #1f2937;
+    }
+    .container {
+      max-width: 980px;
+      margin: 0 auto;
+      padding: 24px;
+    }
+    .card {
+      background: #ffffff;
+      border-radius: 18px;
+      padding: 24px;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.08);
+      margin-top: 24px;
+    }
+    h1, h2, h3 {
+      margin-top: 0;
+    }
+    .muted {
+      color: #6b7280;
+      line-height: 1.6;
+    }
+    .hidden { display: none; }
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(90px, 1fr));
+      gap: 12px;
+      margin-top: 16px;
+    }
+    .id-box {
+      border: 2px solid #d1d5db;
+      border-radius: 14px;
+      min-height: 72px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.2rem;
+      font-weight: bold;
+      cursor: pointer;
+      transition: 0.2s ease;
+      background: #fff;
+      user-select: none;
+    }
+    .id-box:hover {
+      transform: translateY(-2px);
+      border-color: #6366f1;
+    }
+    .id-box.truth {
+      background: #ecfdf5;
+      border-color: #10b981;
+      color: #065f46;
+    }
+    .id-box.lie {
+      background: #fef2f2;
+      border-color: #ef4444;
+      color: #991b1b;
+    }
+    .badge {
+      display: inline-block;
+      padding: 8px 14px;
+      border-radius: 999px;
+      font-size: 0.95rem;
+      font-weight: bold;
+      margin-top: 12px;
+    }
+    .badge.truth {
+      background: #ecfdf5;
+      color: #065f46;
+    }
+    .badge.lie {
+      background: #fef2f2;
+      color: #991b1b;
+    }
+    .actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 12px;
+      margin-top: 20px;
+    }
+    #screen-run .actions {
+      justify-content: center;
+    }
+    button {
+      border: none;
+      border-radius: 12px;
+      padding: 12px 18px;
+      font-size: 1rem;
+      font-weight: bold;
+      cursor: pointer;
+      transition: 0.2s ease;
+    }
+    button:hover { transform: translateY(-1px); }
+    .primary {
+      background: #4f46e5;
+      color: white;
+    }
+    .secondary {
+      background: #e5e7eb;
+      color: #111827;
+    }
+    .danger {
+      background: #ef4444;
+      color: white;
+    }
+    .progress {
+      height: 12px;
+      width: 100%;
+      background: #e5e7eb;
+      border-radius: 999px;
+      overflow: hidden;
+      margin: 16px 0;
+    }
+    .progress-bar {
+      height: 100%;
+      background: #4f46e5;
+      width: 0%;
+      transition: width 0.3s ease;
+    }
+    .run-panels {
+      display: grid;
+      grid-template-columns: minmax(0, 1.15fr) minmax(320px, 0.85fr);
+      gap: 18px;
+      align-items: start;
+      margin-top: 18px;
+    }
+    .image-frame {
+      background: #f3f4f6;
+      border: 2px dashed #cbd5e1;
+      border-radius: 18px;
+      min-height: 260px;
+      max-height: 320px;
+      padding: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      overflow: hidden;
+    }
+    .image-frame img {
+      max-width: 100%;
+      max-height: 280px;
+      object-fit: contain;
+      display: block;
+    }
+    .big-number {
+      font-size: 4rem;
+      font-weight: bold;
+      color: #9ca3af;
+    }
+    textarea {
+      width: 100%;
+      min-height: 110px;
+      padding: 14px;
+      border-radius: 12px;
+      border: 1px solid #d1d5db;
+      font-size: 1rem;
+      resize: vertical;
+      margin-top: 16px;
+    }
+    .form-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      gap: 14px;
+      margin-top: 20px;
+    }
+    .field {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+    .field label {
+      font-weight: bold;
+    }
+    .field input,
+    .field select,
+    .select-trigger {
+      width: 100%;
+      padding: 12px 14px;
+      border-radius: 12px;
+      border: 1px solid #d1d5db;
+      font-size: 1rem;
+      background: white;
+    }
+    .custom-select {
+      position: relative;
+      width: 100%;
+    }
+    .select-trigger {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      text-align: left;
+      font-weight: normal;
+      color: #111827;
+    }
+    .select-trigger.placeholder {
+      color: #6b7280;
+    }
+    .select-trigger:hover {
+      transform: none;
+    }
+    .select-trigger .trigger-left,
+    .select-option .option-left {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      min-width: 0;
+    }
+    .select-trigger img,
+    .select-option img {
+      width: 24px;
+      height: 16px;
+      object-fit: cover;
+      border-radius: 3px;
+      border: 1px solid #e5e7eb;
+      flex-shrink: 0;
+      background: #f3f4f6;
+    }
+    .trigger-label,
+    .option-label {
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .trigger-arrow {
+      flex-shrink: 0;
+      color: #6b7280;
+      font-size: 0.9rem;
+    }
+    .select-menu {
+      position: absolute;
+      top: calc(100% + 8px);
+      left: 0;
+      right: 0;
+      max-height: 280px;
+      overflow-y: auto;
+      background: white;
+      border: 1px solid #d1d5db;
+      border-radius: 14px;
+      box-shadow: 0 10px 24px rgba(0, 0, 0, 0.12);
+      z-index: 20;
+      padding: 6px;
+    }
+    .select-option {
+      width: 100%;
+      border: none;
+      background: transparent;
+      padding: 10px 12px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      border-radius: 10px;
+      font-size: 1rem;
+      font-weight: normal;
+      color: #111827;
+      cursor: pointer;
+    }
+    .select-option:hover {
+      background: #f3f4f6;
+      transform: none;
+    }
+    .recorder-wrap {
+      display: block;
+    }
+    .recorder-card {
+      background: #f9fafb;
+      border: 1px solid #e5e7eb;
+      border-radius: 18px;
+      padding: 16px;
+    }
+    .recorder-card h3 {
+      margin-bottom: 10px;
+      font-size: 1.05rem;
+    }
+    .camera-preview {
+      width: 100%;
+      min-height: 180px;
+      max-height: 240px;
+      background: #111827;
+      border-radius: 14px;
+      object-fit: cover;
+    }
+    .recording-status {
+      margin-top: 12px;
+      font-weight: bold;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+    .recording-timer {
+      margin-top: 10px;
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 8px 12px;
+      border-radius: 999px;
+      background: #eef2ff;
+      color: #3730a3;
+      font-weight: bold;
+      font-variant-numeric: tabular-nums;
+    }
+    .record-dot {
+      width: 12px;
+      height: 12px;
+      border-radius: 999px;
+      background: #9ca3af;
+      display: inline-block;
+    }
+    .record-dot.live {
+      background: #ef4444;
+      box-shadow: 0 0 0 6px rgba(239, 68, 68, 0.15);
+    }
+    .small-muted {
+      color: #6b7280;
+      font-size: 0.94rem;
+      line-height: 1.5;
+      margin-top: 10px;
+    }
+    button:disabled {
+      opacity: 0.55;
+      cursor: not-allowed;
+      transform: none !important;
+    }
+    .download-link {
+      display: inline-block;
+      margin-top: 10px;
+      color: #4338ca;
+      font-weight: bold;
+      text-decoration: none;
+    }
+    .download-link:hover {
+      text-decoration: underline;
+    }
+    .summary-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      gap: 14px;
+      margin-top: 18px;
+    }
+    .summary-item {
+      background: #f9fafb;
+      border: 1px solid #e5e7eb;
+      border-radius: 14px;
+      padding: 14px;
+    }
+    .summary-item strong { display: block; margin-bottom: 6px; }
+    .note {
+      background: #eff6ff;
+      border-left: 4px solid #3b82f6;
+      padding: 14px;
+      border-radius: 10px;
+      margin-top: 16px;
+      color: #1e3a8a;
+    }
+    .status-line {
+      margin-top: 12px;
+      font-weight: bold;
+    }
+
+    .upload-status {
+      margin-top: 16px;
+      padding: 12px 14px;
+      border-radius: 12px;
+      background: #f8fafc;
+      border: 1px solid #e5e7eb;
+      color: #334155;
+      line-height: 1.5;
+    }
+    .upload-status.success {
+      background: #ecfdf5;
+      border-color: #a7f3d0;
+      color: #065f46;
+    }
+    .upload-status.error {
+      background: #fef2f2;
+      border-color: #fecaca;
+      color: #991b1b;
+    }
+    .upload-status.loading {
+      background: #eef2ff;
+      border-color: #c7d2fe;
+      color: #3730a3;
+    }
+    @media (max-width: 900px) {
+      .run-panels {
+        grid-template-columns: 1fr;
+      }
+    }
+    @media (max-width: 640px) {
+      .container { padding: 14px; }
+      .card { padding: 18px; }
+      .big-number { font-size: 3rem; }
+      .image-frame {
+        min-height: 220px;
+        max-height: 260px;
+      }
+      .image-frame img {
+        max-height: 220px;
+      }
+      .camera-preview {
+        min-height: 170px;
+        max-height: 210px;
+      }
+    }
+  </style>
+
+  <script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
+</head>
+<body>
+  <div class="container">
+    <div class="card" id="screen-start">
+      <h1>Image Description Experiment</h1>
+      <p class="muted">
+        This website randomly selects 10 image IDs from a pool of 50 images. The participant will assign 5 images to be described truthfully and the other 5 to be described deceptively. Then the website will show the images one by one and remind the participant whether to tell the truth or lie for each image.
+      </p>
+      <div class="note">
+        Put your real images inside a folder named <strong>images</strong> and name them like: <strong>1.jpg</strong>, <strong>2.jpg</strong>, ..., <strong>50.jpg</strong>.
+      </div>
+
+      <div class="form-grid">
+        <div class="field">
+          <label for="participant-name">Participant name</label>
+          <input id="participant-name" type="text" placeholder="Enter participant name" />
+        </div>
+        <div class="field">
+          <label for="participant-gender">Gender</label>
+          <select id="participant-gender">
+            <option value="">Select gender</option>
+            <option value="Male">Male</option>
+            <option value="Female">Female</option>
+            <option value="Prefer not to say">Prefer not to say</option>
+          </select>
+        </div>
+        <div class="field">
+          <label for="participant-country">Country</label>
+          <div class="custom-select" id="country-select">
+            <button type="button" class="select-trigger placeholder" id="country-trigger" aria-haspopup="listbox" aria-expanded="false">
+              <span class="trigger-left">
+                <img id="country-flag" src="https://flagcdn.com/w40/un.png" alt="" class="hidden">
+                <span class="trigger-label" id="country-trigger-label">Select country</span>
+              </span>
+              <span class="trigger-arrow">▼</span>
+            </button>
+            <div class="select-menu hidden" id="country-menu" role="listbox" aria-label="Country options"></div>
+            <input id="participant-country" type="hidden" value="" />
+          </div>
+        </div>
+      </div>
+
+      <div class="actions">
+        <button class="primary" id="btn-start">Start Experiment</button>
+      </div>
+    </div>
+
+    <div class="card hidden" id="screen-select">
+      <h2>Step 1: Randomly selected image IDs</h2>
+      <p class="muted">
+        Below are the 10 randomly chosen image IDs. Select exactly <strong>5</strong> IDs that the participant will describe <strong>truthfully</strong>. The remaining 5 will automatically become <strong>lie</strong> images.
+      </p>
+      <div class="status-line" id="truth-count">Truth selected: 0 / 5</div>
+      <div class="grid" id="selected-ids"></div>
+      <div class="actions">
+        <button class="secondary" id="btn-reroll">Pick another random 10</button>
+        <button class="primary" id="btn-confirm-selection">Confirm 5 Truth Images</button>
+      </div>
+    </div>
+
+    <div class="card hidden" id="screen-preview">
+      <h2>Step 2: Final assignment</h2>
+      <p class="muted">These are the final labels for the 10 selected images.</p>
+      <div class="summary-grid" id="assignment-summary"></div>
+      <div class="actions">
+        <button class="secondary" id="btn-back">Go Back</button>
+        <button class="primary" id="btn-begin-sequence">Begin Image Sequence</button>
+      </div>
+    </div>
+
+    <div class="card hidden" id="screen-run">
+      <h2 id="run-title">Image 1 of 10</h2>
+      <div class="progress">
+        <div class="progress-bar" id="progress-bar"></div>
+      </div>
+      <p class="muted">Current image ID: <strong id="current-id"></strong></p>
+      <div id="current-instruction" class="badge truth">Say the truth</div>
+
+      <div class="run-panels">
+        <div class="image-frame" id="image-frame">
+          <img id="current-image" alt="Current experiment image" />
+          <div id="fallback-number" class="big-number hidden"></div>
+        </div>
+
+        <div class="recorder-wrap">
+          <div class="recorder-card">
+            <h3>Participant camera</h3>
+            <video id="participant-video" class="camera-preview" autoplay muted playsinline></video>
+            <div class="recording-status">
+              <span id="record-dot" class="record-dot"></span>
+              <span id="recording-status-text">Camera ready. Record the answer for this image.</span>
+            </div>
+            <div class="recording-timer" id="recording-timer">Recording length: 00:00</div>
+            <div class="small-muted">
+              A separate video will be recorded for each image. The website keeps the videos inside the browser until the session ends.
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="actions">
+        <button class="secondary" id="btn-start-recording">Start Recording</button>
+        <button class="danger" id="btn-stop-recording" disabled>Stop Recording</button>
+        <button class="primary" id="btn-next" disabled>Continue</button>
+      </div>
+    </div>
+
+    <div class="card hidden" id="screen-end">
+      <h2>Thank you</h2>
+      <p class="muted">
+        The participant has completed all 10 images successfully.
+      </p>
+      <div class="summary-grid" id="final-summary"></div>
+      <div id="upload-status" class="upload-status">
+        Upload status: not configured yet. Paste your Google Apps Script web app URL in the website code first.
+      </div>
+      <div class="actions">
+        <button class="secondary" id="btn-download-all">Download All Videos</button>
+        <button class="secondary" id="btn-upload-drive">Save Session to Drive</button>
+        <button class="primary" id="btn-restart">Run New Participant</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const TOTAL_IMAGES = 50;
+    const SELECT_COUNT = 10;
+    const TRUTH_COUNT = 5;
+
+    // ===== Deployment config =====
+    // 1) Host this HTML on GitHub Pages.
+    // 2) Deploy the provided Apps Script as a web app.
+    // 3) Paste that Apps Script web app URL below.
+    const GOOGLE_APPS_SCRIPT_WEB_APP_URL = '/.netlify/functions/drive-relay';
+    const AUTO_UPLOAD_TO_DRIVE_WHEN_FINISHED = true;
+
+    let selectedImageIds = [];
+    let truthSet = new Set();
+    let lieSet = new Set();
+    let sequence = [];
+    let currentIndex = 0;
+    let participantInfo = {
+      name: '',
+      gender: '',
+      country: ''
+    };
+    let mediaStream = null;
+    let mediaRecorder = null;
+    let currentChunks = [];
+    let recordings = [];
+    let activeRecordingIndex = null;
+    let recordingStartTime = null;
+    let recordingTimerInterval = null;
+    let driveUploadInProgress = false;
+    let driveUploadCompleted = false;
+    let uploadResult = null;
+
+    const screens = {
+      start: document.getElementById('screen-start'),
+      select: document.getElementById('screen-select'),
+      preview: document.getElementById('screen-preview'),
+      run: document.getElementById('screen-run'),
+      end: document.getElementById('screen-end')
+    };
+
+    const selectedIdsContainer = document.getElementById('selected-ids');
+    const truthCountText = document.getElementById('truth-count');
+    const assignmentSummary = document.getElementById('assignment-summary');
+    const finalSummary = document.getElementById('final-summary');
+    const participantNameInput = document.getElementById('participant-name');
+    const participantGenderInput = document.getElementById('participant-gender');
+    const participantCountryInput = document.getElementById('participant-country');
+    const countrySelect = document.getElementById('country-select');
+    const countryTrigger = document.getElementById('country-trigger');
+    const countryMenu = document.getElementById('country-menu');
+    const countryFlag = document.getElementById('country-flag');
+    const countryTriggerLabel = document.getElementById('country-trigger-label');
+
+    const arabCountries = [
+      { name: 'Algeria', code: 'dz' },
+      { name: 'Bahrain', code: 'bh' },
+      { name: 'Comoros', code: 'km' },
+      { name: 'Djibouti', code: 'dj' },
+      { name: 'Egypt', code: 'eg' },
+      { name: 'Iraq', code: 'iq' },
+      { name: 'Jordan', code: 'jo' },
+      { name: 'Kuwait', code: 'kw' },
+      { name: 'Lebanon', code: 'lb' },
+      { name: 'Libya', code: 'ly' },
+      { name: 'Mauritania', code: 'mr' },
+      { name: 'Morocco', code: 'ma' },
+      { name: 'Oman', code: 'om' },
+      { name: 'Palestine', code: 'ps' },
+      { name: 'Qatar', code: 'qa' },
+      { name: 'Saudi Arabia', code: 'sa' },
+      { name: 'Somalia', code: 'so' },
+      { name: 'Sudan', code: 'sd' },
+      { name: 'Syria', code: 'sy' },
+      { name: 'Tunisia', code: 'tn' },
+      { name: 'United Arab Emirates', code: 'ae' },
+      { name: 'Yemen', code: 'ye' }
+    ];
+
+    const runTitle = document.getElementById('run-title');
+    const currentIdText = document.getElementById('current-id');
+    const currentInstruction = document.getElementById('current-instruction');
+    const currentImage = document.getElementById('current-image');
+    const fallbackNumber = document.getElementById('fallback-number');
+    const progressBar = document.getElementById('progress-bar');
+    const participantVideo = document.getElementById('participant-video');
+    const recordDot = document.getElementById('record-dot');
+    const recordingStatusText = document.getElementById('recording-status-text');
+    const recordingTimer = document.getElementById('recording-timer');
+    const btnStartRecording = document.getElementById('btn-start-recording');
+    const btnStopRecording = document.getElementById('btn-stop-recording');
+    const btnNext = document.getElementById('btn-next');
+    const uploadStatus = document.getElementById('upload-status');
+    const btnUploadDrive = document.getElementById('btn-upload-drive');
+
+    function readParticipantInfo() {
+      return {
+        name: participantNameInput.value.trim(),
+        gender: participantGenderInput.value,
+        country: participantCountryInput.value
+      };
+    }
+
+    function validateParticipantInfo() {
+      const info = readParticipantInfo();
+      if (!info.name) {
+        alert('Please enter the participant name before starting.');
+        participantNameInput.focus();
+        return null;
+      }
+      if (!info.gender) {
+        alert('Please choose the participant gender before starting.');
+        participantGenderInput.focus();
+        return null;
+      }
+      if (!info.country) {
+        alert('Please choose the participant country before starting.');
+        countryTrigger.focus();
+        return null;
+      }
+      return info;
+    }
+
+    function closeCountryMenu() {
+      countryMenu.classList.add('hidden');
+      countryTrigger.setAttribute('aria-expanded', 'false');
+    }
+
+    function openCountryMenu() {
+      countryMenu.classList.remove('hidden');
+      countryTrigger.setAttribute('aria-expanded', 'true');
+    }
+
+    function setCountry(name, code) {
+      participantCountryInput.value = name;
+      countryFlag.src = `https://flagcdn.com/w40/${code}.png`;
+      countryFlag.alt = `${name} flag`;
+      countryFlag.classList.remove('hidden');
+      countryTriggerLabel.textContent = name;
+      countryTrigger.classList.remove('placeholder');
+      closeCountryMenu();
+    }
+
+    function resetCountrySelection() {
+      participantCountryInput.value = '';
+      countryFlag.src = 'https://flagcdn.com/w40/un.png';
+      countryFlag.alt = '';
+      countryFlag.classList.add('hidden');
+      countryTriggerLabel.textContent = 'Select country';
+      countryTrigger.classList.add('placeholder');
+      closeCountryMenu();
+    }
+
+    function buildCountryOptions() {
+      countryMenu.innerHTML = '';
+      arabCountries.forEach(country => {
+        const btn = document.createElement('button');
+        btn.type = 'button';
+        btn.className = 'select-option';
+        btn.setAttribute('role', 'option');
+        btn.innerHTML = `
+          <span class="option-left">
+            <img src="https://flagcdn.com/w40/${country.code}.png" alt="${country.name} flag">
+            <span class="option-label">${country.name}</span>
+          </span>
+        `;
+        btn.onclick = () => setCountry(country.name, country.code);
+        countryMenu.appendChild(btn);
+      });
+    }
+
+    function initializeCountrySelect() {
+      buildCountryOptions();
+      resetCountrySelection();
+
+      countryTrigger.onclick = () => {
+        if (countryMenu.classList.contains('hidden')) {
+          openCountryMenu();
+        } else {
+          closeCountryMenu();
+        }
+      };
+
+      document.addEventListener('click', event => {
+        if (!countrySelect.contains(event.target)) {
+          closeCountryMenu();
+        }
+      });
+    }
+
+    function showScreen(name) {
+      Object.values(screens).forEach(screen => screen.classList.add('hidden'));
+      screens[name].classList.remove('hidden');
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+
+
+    function sanitizeFilePart(value) {
+      return String(value || 'participant')
+        .trim()
+        .replace(/[^a-zA-Z0-9_-]+/g, '_')
+        .replace(/^_+|_+$/g, '') || 'participant';
+    }
+
+    function getRecordingMimeType() {
+      const options = [
+        'video/webm;codecs=vp9,opus',
+        'video/webm;codecs=vp8,opus',
+        'video/webm',
+        'video/mp4'
+      ];
+      for (const option of options) {
+        if (window.MediaRecorder && MediaRecorder.isTypeSupported(option)) {
+          return option;
+        }
+      }
+      return '';
+    }
+
+    async function ensureMediaStream() {
+      if (mediaStream) return true;
+      if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+        alert('This browser does not support camera recording. Please use a recent version of Chrome or Edge.');
+        return false;
+      }
+      try {
+        mediaStream = await navigator.mediaDevices.getUserMedia({
+          video: { width: { ideal: 640 }, height: { ideal: 360 }, facingMode: 'user' },
+          audio: { echoCancellation: true, noiseSuppression: true }
+        });
+        participantVideo.srcObject = mediaStream;
+        participantVideo.play().catch(() => {});
+        recordingStatusText.textContent = 'Camera ready. Record the answer for this image.';
+        return true;
+      } catch (error) {
+        console.error(error);
+        alert('Camera or microphone access was denied. Please allow both permissions and try again.');
+        return false;
+      }
+    }
+
+    function stopMediaStream() {
+      if (mediaStream) {
+        mediaStream.getTracks().forEach(track => track.stop());
+        mediaStream = null;
+      }
+      participantVideo.srcObject = null;
+    }
+
+    function formatRecordingTime(ms) {
+      const totalSeconds = Math.max(0, Math.floor(ms / 1000));
+      const minutes = String(Math.floor(totalSeconds / 60)).padStart(2, '0');
+      const seconds = String(totalSeconds % 60).padStart(2, '0');
+      return `${minutes}:${seconds}`;
+    }
+
+    function updateRecordingTimer() {
+      if (!recordingStartTime) {
+        recordingTimer.textContent = 'Recording length: 00:00';
+        return;
+      }
+      const elapsed = Date.now() - recordingStartTime;
+      recordingTimer.textContent = `Recording length: ${formatRecordingTime(elapsed)}`;
+    }
+
+    function startRecordingTimer() {
+      clearRecordingTimer();
+      recordingStartTime = Date.now();
+      updateRecordingTimer();
+      recordingTimerInterval = setInterval(updateRecordingTimer, 250);
+    }
+
+    function stopRecordingTimer(keepDisplayedTime = true) {
+      if (recordingTimerInterval) {
+        clearInterval(recordingTimerInterval);
+        recordingTimerInterval = null;
+      }
+      if (!keepDisplayedTime) {
+        recordingTimer.textContent = 'Recording length: 00:00';
+      }
+      recordingStartTime = null;
+    }
+
+    function clearRecordingTimer() {
+      stopRecordingTimer(false);
+    }
+
+    function resetRecordingButtons() {
+      const hasSavedRecording = Boolean(recordings[currentIndex]);
+      clearRecordingTimer();
+      btnStartRecording.disabled = false;
+      btnStopRecording.disabled = true;
+      btnNext.disabled = !hasSavedRecording;
+      recordDot.classList.remove('live');
+      recordingStatusText.textContent = hasSavedRecording
+        ? 'Video saved for this image. You can continue or record again to replace it.'
+        : 'Camera ready. Record the answer for this image.';
+    }
+
+    function startRecording() {
+      if (!mediaStream) {
+        recordingStatusText.textContent = 'Camera is not ready yet.';
+        return;
+      }
+      if (mediaRecorder && mediaRecorder.state === 'recording') {
+        return;
+      }
+      const mimeType = getRecordingMimeType();
+      currentChunks = [];
+      try {
+        const recorderOptions = mimeType
+          ? { mimeType, videoBitsPerSecond: 700000, audioBitsPerSecond: 96000 }
+          : { videoBitsPerSecond: 700000, audioBitsPerSecond: 96000 };
+        mediaRecorder = new MediaRecorder(mediaStream, recorderOptions);
+      } catch (error) {
+        console.error(error);
+        alert('Could not start video recording in this browser.');
+        return;
+      }
+
+      activeRecordingIndex = currentIndex;
+      mediaRecorder.ondataavailable = event => {
+        if (event.data && event.data.size > 0) {
+          currentChunks.push(event.data);
+        }
+      };
+
+      mediaRecorder.onstop = () => {
+        if (!currentChunks.length) {
+          resetRecordingButtons();
+          return;
+        }
+        const item = sequence[activeRecordingIndex];
+        const extension = (mediaRecorder.mimeType || 'video/webm').includes('mp4') ? 'mp4' : 'webm';
+        const blob = new Blob(currentChunks, { type: mediaRecorder.mimeType || 'video/webm' });
+        const existing = recordings[activeRecordingIndex];
+        if (existing && existing.url) {
+          URL.revokeObjectURL(existing.url);
+        }
+        const filename = `${item.id}-${item.mode}.${extension}`;
+        recordings[activeRecordingIndex] = {
+          sequenceIndex: activeRecordingIndex,
+          imageId: item.id,
+          mode: item.mode,
+          blob,
+          url: URL.createObjectURL(blob),
+          filename
+        };
+        currentChunks = [];
+        activeRecordingIndex = null;
+        resetRecordingButtons();
+      };
+
+      mediaRecorder.start();
+      startRecordingTimer();
+      btnStartRecording.disabled = true;
+      btnStopRecording.disabled = false;
+      btnNext.disabled = true;
+      recordDot.classList.add('live');
+      recordingStatusText.textContent = 'Recording in progress... ask the participant to answer now.';
+    }
+
+    function stopRecording() {
+      if (!mediaRecorder || mediaRecorder.state !== 'recording') {
+        return;
+      }
+      stopRecordingTimer(true);
+      mediaRecorder.stop();
+      btnStopRecording.disabled = true;
+      recordDot.classList.remove('live');
+      recordingStatusText.textContent = 'Processing and saving the recorded video...';
+    }
+
+    function cleanupRecordings() {
+      recordings.forEach(recording => {
+        if (recording && recording.url) {
+          URL.revokeObjectURL(recording.url);
+        }
+      });
+      recordings = [];
+    }
+
+    function downloadAllRecordings() {
+      const validRecordings = recordings.filter(Boolean);
+      if (!validRecordings.length) {
+        alert('There are no videos to download yet.');
+        return;
+      }
+      validRecordings.forEach((recording, index) => {
+        setTimeout(() => {
+          const link = document.createElement('a');
+          link.href = recording.url;
+          link.download = recording.filename;
+          document.body.appendChild(link);
+          link.click();
+          document.body.removeChild(link);
+        }, index * 250);
+      });
+    }
+
+
+    function setUploadStatus(message, type = '') {
+      uploadStatus.textContent = message;
+      uploadStatus.className = 'upload-status' + (type ? ` ${type}` : '');
+    }
+
+    function buildSessionKey() {
+      const baseName = sanitizeFilePart(participantInfo.name || 'participant');
+      const stamp = new Date().toISOString().replace(/[:.]/g, '-');
+      const rand = Math.random().toString(36).slice(2, 8);
+      return `${baseName}_${stamp}_${rand}`;
+    }
+
+    function blobToBase64(blob) {
+      return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onloadend = () => {
+          const result = reader.result || '';
+          const parts = String(result).split(',');
+          resolve(parts.length > 1 ? parts[1] : parts[0]);
+        };
+        reader.onerror = reject;
+        reader.readAsDataURL(blob);
+      });
+    }
+
+    function getCurrentDateTimeText() {
+      return new Date().toLocaleString();
+    }
+
+    async function buildParticipantSummaryPdfBlob(sessionKey) {
+      if (!window.jspdf || !window.jspdf.jsPDF) {
+        throw new Error('jsPDF could not be loaded.');
+      }
+      const { jsPDF } = window.jspdf;
+      const doc = new jsPDF({ unit: 'pt', format: 'a4' });
+
+      let y = 40;
+      const lineHeight = 18;
+      const left = 40;
+      const pageWidth = doc.internal.pageSize.getWidth() - 80;
+
+      function addLine(text, gap = lineHeight) {
+        const lines = doc.splitTextToSize(String(text), pageWidth);
+        doc.text(lines, left, y);
+        y += gap * lines.length;
+        if (y > 770) {
+          doc.addPage();
+          y = 40;
+        }
+      }
+
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(18);
+      addLine('Participant Session Summary', 24);
+
+      doc.setFont('helvetica', 'normal');
+      doc.setFontSize(11);
+      addLine(`Session key: ${sessionKey}`);
+      addLine(`Generated at: ${getCurrentDateTimeText()}`);
+      addLine('');
+      addLine(`Participant name: ${participantInfo.name}`);
+      addLine(`Gender: ${participantInfo.gender}`);
+      addLine(`Country: ${participantInfo.country}`);
+      addLine('');
+      addLine(`Selected image IDs: ${selectedImageIds.join(', ')}`);
+      addLine(`Truth image IDs: ${Array.from(truthSet).sort((a, b) => a - b).join(', ')}`);
+      addLine(`Lie image IDs: ${Array.from(lieSet).sort((a, b) => a - b).join(', ')}`);
+      addLine('');
+      addLine('Video files:');
+      sequence.forEach((item, index) => {
+        const recording = recordings[index];
+        addLine(`- ${item.id}-${item.mode}${recording ? (recording.filename.endsWith('.mp4') ? '.mp4' : '.webm') : ''}`);
+      });
+
+      addLine('');
+      addLine('Assignment order:');
+      sequence.forEach((item, index) => addLine(`${index + 1}. Image ${item.id} - ${item.mode}`));
+
+      return doc.output('blob');
+    }
+
+    async function postJsonToAppsScript(payload) {
+      const url = GOOGLE_APPS_SCRIPT_WEB_APP_URL.trim();
+      if (!url || url.includes('PASTE_YOUR_APPS_SCRIPT_WEB_APP_URL_HERE')) {
+        throw new Error('Google Apps Script web app URL is not configured yet.');
+      }
+
+      const response = await fetch(url, {
+        method: 'POST',
+        headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+        body: JSON.stringify(payload)
+      });
+
+      const text = await response.text();
+      let data = {};
+      try {
+        data = text ? JSON.parse(text) : {};
+      } catch (error) {
+        data = { ok: response.ok, raw: text };
+      }
+      if (!response.ok || data.ok === false) {
+        throw new Error(data.message || `Upload request failed with status ${response.status}.`);
+      }
+      return data;
+    }
+
+    async function uploadSessionToDrive() {
+      if (driveUploadInProgress) return;
+      if (driveUploadCompleted) {
+        setUploadStatus('This participant session was already uploaded to Google Drive.', 'success');
+        return;
+      }
+
+      const validRecordings = recordings.filter(Boolean);
+      if (validRecordings.length !== sequence.length) {
+        throw new Error('Some videos are still missing. Each image must have one recorded answer.');
+      }
+
+      driveUploadInProgress = true;
+      btnUploadDrive.disabled = true;
+      document.getElementById('btn-restart').disabled = true;
+
+      try {
+        const sessionKey = buildSessionKey();
+        setUploadStatus('Uploading participant metadata to Google Drive...', 'loading');
+
+        await postJsonToAppsScript({
+          action: 'begin_session',
+          sessionKey,
+          participant: participantInfo,
+          selectedImageIds,
+          truthImageIds: Array.from(truthSet).sort((a, b) => a - b),
+          lieImageIds: Array.from(lieSet).sort((a, b) => a - b),
+          sequence
+        });
+
+        setUploadStatus('Generating participant PDF summary...', 'loading');
+        const pdfBlob = await buildParticipantSummaryPdfBlob(sessionKey);
+        const pdfBase64 = await blobToBase64(pdfBlob);
+
+        await postJsonToAppsScript({
+          action: 'upload_file',
+          sessionKey,
+          filename: 'participant_summary.pdf',
+          mimeType: 'application/pdf',
+          base64Data: pdfBase64
+        });
+
+        for (let index = 0; index < validRecordings.length; index++) {
+          const recording = validRecordings[index];
+          setUploadStatus(`Uploading video ${index + 1} of ${validRecordings.length}: ${recording.filename}`, 'loading');
+          const base64Data = await blobToBase64(recording.blob);
+          await postJsonToAppsScript({
+            action: 'upload_file',
+            sessionKey,
+            filename: recording.filename,
+            mimeType: recording.blob.type || 'video/webm',
+            base64Data
+          });
+        }
+
+        setUploadStatus('Creating zip file in Google Drive...', 'loading');
+        const result = await postJsonToAppsScript({
+          action: 'finalize_session',
+          sessionKey,
+          zipName: `${sessionKey}.zip`
+        });
+
+        driveUploadCompleted = true;
+        uploadResult = result;
+        const finalMessage = result && result.url
+          ? `Upload complete. The zip file was created in Google Drive. Open it here: ${result.url}`
+          : 'Upload complete. The zip file was created in Google Drive successfully.';
+        setUploadStatus(finalMessage, 'success');
+      } catch (error) {
+        console.error(error);
+        setUploadStatus(`Upload failed: ${error.message}`, 'error');
+        throw error;
+      } finally {
+        driveUploadInProgress = false;
+        btnUploadDrive.disabled = false;
+        document.getElementById('btn-restart').disabled = false;
+      }
+    }
+
+
+    function getRandomUniqueNumbers(count, min, max) {
+      const arr = [];
+      for (let i = min; i <= max; i++) arr.push(i);
+      for (let i = arr.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [arr[i], arr[j]] = [arr[j], arr[i]];
+      }
+      return arr.slice(0, count).sort((a, b) => a - b);
+    }
+
+    function resetExperiment() {
+      selectedImageIds = getRandomUniqueNumbers(SELECT_COUNT, 1, TOTAL_IMAGES);
+      truthSet = new Set();
+      lieSet = new Set();
+      sequence = [];
+      currentIndex = 0;
+      cleanupRecordings();
+      driveUploadInProgress = false;
+      driveUploadCompleted = false;
+      uploadResult = null;
+      setUploadStatus('Upload status: waiting for the participant to finish all 10 recordings.');
+      renderSelectionGrid();
+      showScreen('select');
+    }
+
+    function renderSelectionGrid() {
+      selectedIdsContainer.innerHTML = '';
+      selectedImageIds.forEach(id => {
+        const box = document.createElement('div');
+        box.className = 'id-box';
+        if (truthSet.has(id)) box.classList.add('truth');
+        if (lieSet.has(id)) box.classList.add('lie');
+        box.textContent = id;
+        box.onclick = () => toggleTruth(id);
+        selectedIdsContainer.appendChild(box);
+      });
+      truthCountText.textContent = `Truth selected: ${truthSet.size} / ${TRUTH_COUNT}`;
+    }
+
+    function toggleTruth(id) {
+      if (truthSet.has(id)) {
+        truthSet.delete(id);
+      } else {
+        if (truthSet.size >= TRUTH_COUNT) {
+          alert('You must select exactly 5 truthful images only.');
+          return;
+        }
+        truthSet.add(id);
+      }
+      lieSet = new Set(selectedImageIds.filter(x => !truthSet.has(x)));
+      renderSelectionGrid();
+    }
+
+    function buildSequence() {
+      lieSet = new Set(selectedImageIds.filter(id => !truthSet.has(id)));
+      sequence = selectedImageIds.map(id => ({
+        id,
+        mode: truthSet.has(id) ? 'truth' : 'lie'
+      }));
+    }
+
+    function renderAssignmentSummary() {
+      assignmentSummary.innerHTML = '';
+      sequence.forEach(item => {
+        const div = document.createElement('div');
+        div.className = 'summary-item';
+        div.innerHTML = `
+          <strong>Image ID ${item.id}</strong>
+          <span class="badge ${item.mode}">${item.mode === 'truth' ? 'Say the truth' : 'Say a lie'}</span>
+        `;
+        assignmentSummary.appendChild(div);
+      });
+    }
+
+    function renderCurrentStep() {
+      const item = sequence[currentIndex];
+      const progressPercent = ((currentIndex) / sequence.length) * 100;
+      progressBar.style.width = progressPercent + '%';
+      runTitle.textContent = `Image ${currentIndex + 1} of ${sequence.length}`;
+      currentIdText.textContent = item.id;
+      currentInstruction.textContent = item.mode === 'truth' ? 'Say the truth' : 'Say a lie';
+      currentInstruction.className = 'badge ' + item.mode;
+
+      currentImage.classList.remove('hidden');
+      fallbackNumber.classList.add('hidden');
+      currentImage.src = `images/${item.id}.jpg`;
+      currentImage.onerror = () => {
+        currentImage.classList.add('hidden');
+        fallbackNumber.classList.remove('hidden');
+        fallbackNumber.textContent = item.id;
+      };
+
+      resetRecordingButtons();
+    }
+
+    function renderFinalSummary() {
+      finalSummary.innerHTML = '';
+
+      const participantDiv = document.createElement('div');
+      participantDiv.className = 'summary-item';
+      participantDiv.innerHTML = `
+        <strong>Participant information</strong>
+        Name: ${participantInfo.name}<br>
+        Gender: ${participantInfo.gender}<br>
+        Country: ${participantInfo.country}<br>
+        Recorded videos: ${recordings.filter(Boolean).length} / ${sequence.length}<br>
+        Drive upload: ${driveUploadCompleted ? 'Completed' : 'Pending'}
+      `;
+      finalSummary.appendChild(participantDiv);
+
+      sequence.forEach((item, index) => {
+        const div = document.createElement('div');
+        div.className = 'summary-item';
+        const recording = recordings[index];
+        div.innerHTML = `
+          <strong>${index + 1}. Image ID ${item.id}</strong>
+          Mode: ${item.mode === 'truth' ? 'Truth' : 'Lie'}<br>
+          Video: ${recording ? 'Saved' : 'Missing'}
+        `;
+        if (recording) {
+          const link = document.createElement('a');
+          link.href = recording.url;
+          link.download = recording.filename;
+          link.className = 'download-link';
+          link.textContent = 'Download this video';
+          div.appendChild(link);
+        }
+        finalSummary.appendChild(div);
+      });
+    }
+
+    document.getElementById('btn-start').onclick = () => {
+      const info = validateParticipantInfo();
+      if (!info) return;
+      participantInfo = info;
+      resetExperiment();
+    };
+    document.getElementById('btn-reroll').onclick = () => {
+      selectedImageIds = getRandomUniqueNumbers(SELECT_COUNT, 1, TOTAL_IMAGES);
+      truthSet = new Set();
+      lieSet = new Set();
+      renderSelectionGrid();
+    };
+
+    document.getElementById('btn-confirm-selection').onclick = () => {
+      if (truthSet.size !== TRUTH_COUNT) {
+        alert('Please select exactly 5 truthful images. The remaining 5 will become lie images.');
+        return;
+      }
+      buildSequence();
+      renderAssignmentSummary();
+      showScreen('preview');
+    };
+
+    document.getElementById('btn-back').onclick = () => {
+      showScreen('select');
+    };
+
+    document.getElementById('btn-begin-sequence').onclick = async () => {
+      const granted = await ensureMediaStream();
+      if (!granted) return;
+      currentIndex = 0;
+      renderCurrentStep();
+      showScreen('run');
+    };
+
+    btnStartRecording.onclick = async () => {
+      const granted = await ensureMediaStream();
+      if (!granted) return;
+      startRecording();
+    };
+
+    btnStopRecording.onclick = () => {
+      stopRecording();
+    };
+
+    btnNext.onclick = () => {
+      if (mediaRecorder && mediaRecorder.state === 'recording') {
+        alert('Please stop the current recording before continuing.');
+        return;
+      }
+      if (!recordings[currentIndex]) {
+        alert('Please record a video answer for this image before continuing.');
+        return;
+      }
+      currentIndex++;
+      if (currentIndex >= sequence.length) {
+        progressBar.style.width = '100%';
+        stopMediaStream();
+        renderFinalSummary();
+        showScreen('end');
+        setUploadStatus(
+          GOOGLE_APPS_SCRIPT_WEB_APP_URL.includes('PASTE_YOUR_APPS_SCRIPT_WEB_APP_URL_HERE')
+            ? 'Upload status: not configured yet. Paste your Google Apps Script web app URL in the website code first.'
+            : 'Participant finished. Starting automatic upload to Google Drive...',
+          GOOGLE_APPS_SCRIPT_WEB_APP_URL.includes('PASTE_YOUR_APPS_SCRIPT_WEB_APP_URL_HERE') ? '' : 'loading'
+        );
+        if (!GOOGLE_APPS_SCRIPT_WEB_APP_URL.includes('PASTE_YOUR_APPS_SCRIPT_WEB_APP_URL_HERE') && AUTO_UPLOAD_TO_DRIVE_WHEN_FINISHED) {
+          uploadSessionToDrive().then(() => renderFinalSummary()).catch(() => renderFinalSummary());
+        }
+        return;
+      }
+      renderCurrentStep();
+    };
+
+    document.getElementById('btn-download-all').onclick = () => {
+      downloadAllRecordings();
+    };
+
+    btnUploadDrive.onclick = async () => {
+      try {
+        await uploadSessionToDrive();
+        renderFinalSummary();
+      } catch (error) {
+      }
+    };
+
+    document.getElementById('btn-restart').onclick = () => {
+      if (mediaRecorder && mediaRecorder.state === 'recording') {
+        mediaRecorder.stop();
+      }
+      stopMediaStream();
+      clearRecordingTimer();
+      cleanupRecordings();
+      participantInfo = { name: '', gender: '', country: '' };
+      driveUploadInProgress = false;
+      driveUploadCompleted = false;
+      uploadResult = null;
+      participantNameInput.value = '';
+      participantGenderInput.value = '';
+      resetCountrySelection();
+      setUploadStatus('Upload status: waiting for the participant to finish all 10 recordings.');
+      showScreen('start');
+    };
+
+    initializeCountrySelect();
+  </script>
+</body>
+</html>
