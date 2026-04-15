@@ -769,7 +769,7 @@
       }
       try {
         mediaStream = await navigator.mediaDevices.getUserMedia({
-          video: { width: { ideal: 640 }, height: { ideal: 360 }, facingMode: 'user' },
+          video: { width: { ideal: 426 }, height: { ideal: 240 }, frameRate: { ideal: 20, max: 24 }, facingMode: 'user' },
           audio: { echoCancellation: true, noiseSuppression: true }
         });
         participantVideo.srcObject = mediaStream;
@@ -853,8 +853,8 @@
       currentChunks = [];
       try {
         const recorderOptions = mimeType
-          ? { mimeType, videoBitsPerSecond: 700000, audioBitsPerSecond: 96000 }
-          : { videoBitsPerSecond: 700000, audioBitsPerSecond: 96000 };
+          ? { mimeType, videoBitsPerSecond: 350000, audioBitsPerSecond: 64000 }
+          : { videoBitsPerSecond: 350000, audioBitsPerSecond: 64000 };
         mediaRecorder = new MediaRecorder(mediaStream, recorderOptions);
       } catch (error) {
         console.error(error);
@@ -1119,7 +1119,7 @@
         setUploadStatus(finalMessage, 'success');
       } catch (error) {
         console.error(error);
-        setUploadStatus(`Upload failed: ${error.message}`, 'error');
+        setUploadStatus(`Upload failed: ${error.message} If the PDF was saved but not the videos, update the Apps Script file and redeploy it, then test again with short recordings.`, 'error');
         throw error;
       } finally {
         driveUploadInProgress = false;
