@@ -772,28 +772,6 @@
       }
     }
 
-  
-    @media (max-width: 768px) {
-      .run-layout {
-        display: flex !important;
-        flex-direction: column !important;
-      }
-
-      .run-right {
-        display: flex !important;
-        flex-direction: column !important;
-      }
-
-      .run-right .run-controls {
-        order: -1 !important;
-        margin-bottom: 14px !important;
-      }
-
-      .run-right .recorder-card {
-        order: 2 !important;
-      }
-    }
-
   </style>
 
   <script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
@@ -915,7 +893,7 @@
       </div>
       <div class="actions">
         <button class="secondary" id="btn-download-all">Download All Videos</button>
-        <button class="secondary" id="btn-upload-drive" style="display:none;">Save Session to Drive</button>
+        <button class="secondary" id="btn-upload-drive">Save Session to Drive</button>
         <button class="primary" id="btn-restart">Run New Participant</button>
       </div>
     </div>
@@ -1470,7 +1448,11 @@
       const restartBtn = document.getElementById('btn-restart');
       if (!restartBtn) return;
 
-      btnUploadDrive.style.display = 'none';
+      if (driveUploadCompleted) {
+        btnUploadDrive.style.display = 'none';
+      } else {
+        btnUploadDrive.style.display = '';
+      }
 
       if (experimentFinished && !driveUploadCompleted) {
         restartBtn.disabled = true;
