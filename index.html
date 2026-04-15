@@ -893,7 +893,7 @@
       </div>
       <div class="actions">
         <button class="secondary" id="btn-download-all">Download All Videos</button>
-        <button class="secondary" id="btn-upload-drive">Save Session to Drive (No Zip)</button>
+        <button class="secondary" id="btn-upload-drive">Save Session to Drive</button>
         <button class="primary" id="btn-restart">Run New Participant</button>
       </div>
     </div>
@@ -993,6 +993,22 @@
     const btnNext = document.getElementById('btn-next');
     const uploadStatus = document.getElementById('upload-status');
     const btnUploadDrive = document.getElementById('btn-upload-drive');
+
+    function showThankYouPopup() {
+      const overlay = document.getElementById('thankyouPopupOverlay');
+      if (!overlay) return;
+      overlay.classList.add('show');
+      overlay.setAttribute('aria-hidden', 'false');
+      const button = document.getElementById('closeThankyouPopupBtn');
+      if (button) button.focus();
+    }
+
+    function hideThankYouPopup() {
+      const overlay = document.getElementById('thankyouPopupOverlay');
+      if (!overlay) return;
+      overlay.classList.remove('show');
+      overlay.setAttribute('aria-hidden', 'true');
+    }
 
     function readParticipantInfo() {
       return {
@@ -1427,7 +1443,7 @@
 
       try {
         const sessionKey = buildSessionKey();
-        setUploadStatus('Uploading participant metadata to Google Drive...', 'loading');
+        setUploadStatus('Please wait. Participant information is being uploaded to the database...', 'loading');
 
         await postJsonToAppsScript({
           action: 'begin_session',
@@ -1439,7 +1455,7 @@
           sequence
         });
 
-        setUploadStatus('Generating participant PDF summary...', 'loading');
+        setUploadStatus('Please wait. The participant summary is being prepared and uploaded...', 'loading');
         const pdfBlob = await buildParticipantSummaryPdfBlob(sessionKey);
         const pdfBase64 = await blobToBase64(pdfBlob);
 
@@ -1453,7 +1469,7 @@
 
         for (let index = 0; index < validRecordings.length; index++) {
           const recording = validRecordings[index];
-          setUploadStatus(`Uploading video ${index + 1} of ${validRecordings.length}: ${recording.filename}`, 'loading');
+          setUploadStatus(`Please wait. Uploading response ${index + 1} of ${validRecordings.length} to the database: ${recording.filename}`, 'loading');
           const base64Data = await blobToBase64(recording.blob);
           await postJsonToAppsScript({
             action: 'upload_file',
@@ -1470,7 +1486,7 @@
           sessionKey,
           mode: 'files_only'
         };
-        setUploadStatus('Upload complete. Participant data, PDF, and videos were saved to Google Drive. Zip creation is skipped in this version.', 'success');
+        setUploadStatus('Upload complete. The participant data and recorded responses were saved successfully to the database.', 'success');
         showThankYouPopup();
       } catch (error) {
         console.error(error);
@@ -1504,7 +1520,7 @@
       driveUploadInProgress = false;
       driveUploadCompleted = false;
       uploadResult = null;
-      setUploadStatus('Upload status: waiting for the participant to finish all 10 recordings.');
+      setUploadStatus('Upload status: waiting for the participant to finish all 10 recordings. After the last recording, please wait until the data is uploaded to the database.');
       renderSelectionGrid();
       showScreen('select');
     }
@@ -1678,7 +1694,7 @@
         setUploadStatus(
           GOOGLE_APPS_SCRIPT_WEB_APP_URL.includes('PASTE_YOUR_APPS_SCRIPT_WEB_APP_URL_HERE')
             ? 'Upload status: not configured yet. Paste your Google Apps Script web app URL in the website code first.'
-            : 'Participant finished. Starting automatic upload to Google Drive...',
+            : 'Please wait. The participant responses are now being uploaded to the database. Do not close this page until the upload is completed.',
           GOOGLE_APPS_SCRIPT_WEB_APP_URL.includes('PASTE_YOUR_APPS_SCRIPT_WEB_APP_URL_HERE') ? '' : 'loading'
         );
         if (!GOOGLE_APPS_SCRIPT_WEB_APP_URL.includes('PASTE_YOUR_APPS_SCRIPT_WEB_APP_URL_HERE') && AUTO_UPLOAD_TO_DRIVE_WHEN_FINISHED) {
@@ -1715,7 +1731,8 @@
       participantNameInput.value = '';
       participantGenderInput.value = '';
       resetCountrySelection();
-      setUploadStatus('Upload status: waiting for the participant to finish all 10 recordings.');
+      hideThankYouPopup();
+      setUploadStatus('Upload status: waiting for the participant to finish all 10 recordings. After the last recording, please wait until the data is uploaded to the database.');
       showScreen('start');
     };
 
