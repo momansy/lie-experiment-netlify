@@ -979,9 +979,9 @@
               <span id="record-dot" class="record-dot"></span>
               <span id="recording-status-text">Camera ready. Record the answer for this image.</span>
             </div>
-            <div class="recording-timer" id="recording-timer">Recording length: 00:00</div>
+            <div class="recording-timer" id="recording-timer">Recording length: 00:00 / 00:20</div>
             <div class="small-muted">
-              A separate video will be recorded for each image. The website keeps the videos inside the browser until the session ends.
+              A separate video will be recorded for each image. For better upload stability, each response is limited to 20 seconds. The website keeps the videos inside the browser until the session ends.
             </div>
           </div>
         </div>
@@ -1009,6 +1009,9 @@
     const TOTAL_IMAGES = 50;
     const SELECT_COUNT = 10;
     const TRUTH_COUNT = 5;
+    const MAX_RECORDING_SECONDS = 20;
+    const REDUCED_VIDEO_BITRATE = 700000;
+    const REDUCED_AUDIO_BITRATE = 48000;
 
     // ===== Deployment config =====
     // 1) Host this HTML on GitHub Pages.
@@ -1016,6 +1019,7 @@
     // 3) Paste that Apps Script web app URL below.
     const GOOGLE_APPS_SCRIPT_WEB_APP_URL = '/.netlify/functions/drive-relay';
     const AUTO_UPLOAD_TO_DRIVE_WHEN_FINISHED = true;
+    const RELEASE_LOCAL_VIDEO_AFTER_SUCCESSFUL_UPLOAD = true;
 
     let selectedImageIds = [];
     let truthSet = new Set();
@@ -1231,12 +1235,11 @@
     }
 
     function getRecordingMimeType() {
-      const options = [
-        'video/webm;codecs=vp9,opus',
-        'video/webm;codecs=vp8,opus',
-        'video/webm',
-        'video/mp4'
-      ];
+      const isAppleDevice = /iPad|iPhone|iPod|Mac/.test(navigator.userAgent) && /Apple/.test(navigator.vendor || '');
+      const options = isAppleDevice
+        ? ['video/mp4', 'video/webm;codecs=vp8,opus', 'video/webm']
+        : ['video/webm;codecs=vp8,opus', 'video/webm', 'video/mp4'];
+
       for (const option of options) {
         if (window.MediaRecorder && MediaRecorder.isTypeSupported(option)) {
           return option;
@@ -1253,8 +1256,16 @@
       }
       try {
         mediaStream = await navigator.mediaDevices.getUserMedia({
-          video: { width: { ideal: 1280 }, height: { ideal: 720 }, frameRate: { ideal: 60, max: 60 }, facingMode: 'user' },
-          audio: { echoCancellation: true, noiseSuppression: true }
+          video: {
+            width: { ideal: 640, max: 640 },
+            height: { ideal: 480, max: 480 },
+            frameRate: { ideal: 24, max: 30 },
+            facingMode: 'user'
+          },
+          audio: {
+            echoCancellation: true,
+            noiseSuppression: true
+          }
         });
         participantVideo.srcObject = mediaStream;
         participantVideo.play().catch(() => {});
@@ -1282,13 +1293,24 @@
       return `${minutes}:${seconds}`;
     }
 
+    function getDefaultRecordingTimerText() {
+      return `Recording length: 00:00 / ${formatRecordingTime(MAX_RECORDING_SECONDS * 1000)}`;
+    }
+
     function updateRecordingTimer() {
       if (!recordingStartTime) {
-        recordingTimer.textContent = 'Recording length: 00:00';
+        recordingTimer.textContent = getDefaultRecordingTimerText();
         return;
       }
       const elapsed = Date.now() - recordingStartTime;
-      recordingTimer.textContent = `Recording length: ${formatRecordingTime(elapsed)}`;
+      const maxMs = MAX_RECORDING_SECONDS * 1000;
+      const boundedElapsed = Math.min(elapsed, maxMs);
+      recordingTimer.textContent = `Recording length: ${formatRecordingTime(boundedElapsed)} / ${formatRecordingTime(maxMs)}`;
+
+      if (elapsed >= maxMs && mediaRecorder && mediaRecorder.state === 'recording') {
+        recordingStatusText.textContent = 'Maximum recording length reached. Processing and saving the recorded video...';
+        stopRecording();
+      }
     }
 
     function startRecordingTimer() {
@@ -1304,7 +1326,7 @@
         recordingTimerInterval = null;
       }
       if (!keepDisplayedTime) {
-        recordingTimer.textContent = 'Recording length: 00:00';
+        recordingTimer.textContent = getDefaultRecordingTimerText();
       }
       recordingStartTime = null;
     }
@@ -1337,8 +1359,8 @@
       currentChunks = [];
       try {
         const recorderOptions = mimeType
-          ? { mimeType, videoBitsPerSecond: 2500000, audioBitsPerSecond: 96000 }
-          : { videoBitsPerSecond: 2500000, audioBitsPerSecond: 96000 };
+          ? { mimeType, videoBitsPerSecond: REDUCED_VIDEO_BITRATE, audioBitsPerSecond: REDUCED_AUDIO_BITRATE }
+          : { videoBitsPerSecond: REDUCED_VIDEO_BITRATE, audioBitsPerSecond: REDUCED_AUDIO_BITRATE };
         mediaRecorder = new MediaRecorder(mediaStream, recorderOptions);
       } catch (error) {
         console.error(error);
@@ -1413,10 +1435,20 @@
       experimentFinished = false;
     }
 
+    function releaseLocalRecordingBuffer(recording) {
+      if (!recording) return;
+      if (recording.url) {
+        URL.revokeObjectURL(recording.url);
+      }
+      recording.url = '';
+      recording.blob = null;
+      recording.localReleased = true;
+    }
+
     function downloadAllRecordings() {
-      const validRecordings = recordings.filter(Boolean);
+      const validRecordings = recordings.filter(recording => recording && recording.url);
       if (!validRecordings.length) {
-        alert('There are no videos to download yet.');
+        alert('There are no local videos to download. Uploaded videos were already released from the browser memory.');
         return;
       }
       validRecordings.forEach((recording, index) => {
@@ -1672,6 +1704,9 @@
             recording.uploaded = true;
             recording.uploading = false;
             recording.uploadError = '';
+            if (RELEASE_LOCAL_VIDEO_AFTER_SUCCESSFUL_UPLOAD) {
+              releaseLocalRecordingBuffer(recording);
+            }
             renderFinalSummary();
           } catch (error) {
             recording.uploading = false;
@@ -1778,7 +1813,7 @@ function getRandomUniqueNumbers(count, min, max) {
       summaryUploaded = false;
       uploadWorkerRunning = false;
       experimentFinished = false;
-      setUploadStatus('Upload status: waiting for the participant to finish all 10 recordings. Each response will start uploading in the background after you continue.');
+      setUploadStatus('Upload status: waiting for the participant to finish all 10 recordings. Each confirmed response will upload in the background after you continue, then its local browser buffer can be released.');
       renderSelectionGrid();
       showScreen('select');
     }
@@ -1876,7 +1911,9 @@ function renderFinalSummary() {
     let videoText = 'Missing';
 
     if (recording) {
-      if (recording.uploaded) {
+      if (recording.uploaded && recording.localReleased) {
+        videoText = 'Uploaded and released from local memory';
+      } else if (recording.uploaded) {
         videoText = 'Uploaded';
       } else if (recording.uploading || recording.queued) {
         videoText = 'Waiting for upload';
@@ -1892,7 +1929,7 @@ function renderFinalSummary() {
       Mode: ${item.mode === 'truth' ? 'Truth' : 'Lie'}<br>
       Video: ${videoText}
     `;
-    if (recording) {
+    if (recording && recording.url) {
       const link = document.createElement('a');
       link.href = recording.url;
       link.download = recording.filename;
@@ -1974,7 +2011,7 @@ btnNext.onclick = () => {
     setUploadStatus(
       GOOGLE_APPS_SCRIPT_WEB_APP_URL.includes('PASTE_YOUR_APPS_SCRIPT_WEB_APP_URL_HERE')
         ? 'Upload status: not configured yet. Paste your database web app URL in the website code first.'
-        : `Please wait. ${getUploadedCount()} of ${sequence.length} responses have been uploaded to the database. The remaining responses will keep uploading in the background. Do not close this page until the upload is completed.`,
+        : `Please wait. ${getUploadedCount()} of ${sequence.length} responses have been uploaded to the database. The remaining responses will keep uploading in the background, and each successful upload will be removed from local browser memory. Do not close this page until the upload is completed.`,
       GOOGLE_APPS_SCRIPT_WEB_APP_URL.includes('PASTE_YOUR_APPS_SCRIPT_WEB_APP_URL_HERE') ? '' : 'loading'
     );
     refreshEndActions();
@@ -2034,7 +2071,7 @@ btnNext.onclick = () => {
       participantGenderInput.value = '';
       resetCountrySelection();
       hideThankYouPopup();
-      setUploadStatus('Upload status: waiting for the participant to finish all 10 recordings. Each response will start uploading in the background after you continue.');
+      setUploadStatus('Upload status: waiting for the participant to finish all 10 recordings. Each confirmed response will upload in the background after you continue, then its local browser buffer can be released.');
       showScreen('start');
     };
 
